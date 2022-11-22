@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Persistence;
+using System.Collections;
 
 namespace MovieProject.Controllers
 {
@@ -174,22 +175,24 @@ namespace MovieProject.Controllers
         {
             try
             {
-                var movieList = await _context.Movies.ToListAsync();
+                IQueryable<Movie> movieList =  _context.Movies;
                 if (movieList == null)
                    return BadRequest();
 
+                
+                movieList = !string.IsNullOrEmpty(title)? movieList.Where(x => x.Title.ToLower().Contains(title.ToLower())) : movieList;
+                movieList = movieList.Skip(page * pageSize).Take(pageSize);
+
                 if (sortType == SortType.ASC)
                 {
-                    movieList.OrderBy(x => x);
+                    movieList = movieList.OrderBy(x => x.Title);
                 }
                 else
                 {
-                    movieList.OrderByDescending(x => x);
+                    movieList = movieList.OrderByDescending(x => x.Title);
                 }
-                
-                movieList = /*!string.IsNullOrEmpty(title)? */movieList.Where(x => x.Title.Contains(title)).ToList() /*: movieList*/;
-                movieList = movieList.Skip(page * pageSize).Take(pageSize).ToList();  
-                return Ok(movieList);
+
+                return Ok(await movieList.ToListAsync());
             }
             catch (Exception ex)
             {

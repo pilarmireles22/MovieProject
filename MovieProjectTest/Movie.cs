@@ -17,14 +17,14 @@ namespace MovieProjectTest
         public void GetMovies()
         {
             var controller = new MoviesController(null, null);
-            controller.GetMovies();
+            _ = controller.GetMovies();
             Assert.Pass();
         }
         [Test]
         public void GetReviews()
         {
             var controller = new MoviesController(null, null);
-            controller.GetReviews();
+            _ = controller.GetReviews();
             Assert.Pass();
         }
         [Test]
@@ -32,7 +32,7 @@ namespace MovieProjectTest
         public void GetMoviesById(Guid id)
         {
             var controller = new MoviesController(null, null);
-            controller.GetMovieById(id);
+            _ = controller.GetMovieById(id);
             Assert.Pass();
         }
         [Test]
@@ -40,7 +40,7 @@ namespace MovieProjectTest
         public void GetReviewById(Guid id)
         {
             var controller = new MoviesController(null, null);
-            controller.GetReviewById(id);
+            _ = controller.GetReviewById(id);
             Assert.Pass();
         }
     }
