@@ -8,6 +8,6 @@
         public string Genres { get; set; } 
         public bool Disable { get; set; }
         public DateTime? CreatedDate { get; set; }
-        public ICollection<Review>? Reviews { get; set; } 
+        public ICollection<Review> Reviews { get; set; } 
     }
 }

@@ -1,4 +1,5 @@
-﻿using Domain;
+﻿using Application.Common.Enums;
+using Domain;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -14,17 +15,40 @@ namespace MovieProject.Controllers
         public MoviesController(DataContext context, ILogger<MoviesController> logger)
         {
             _context = context;
-            _logger = logger;   
+            _logger = logger;
         }
         [HttpGet]
         public async Task<ActionResult<List<Movie>>> GetMovies()
         {
-            return await _context.Movies.ToListAsync();
+            try
+            {
+                var movieList = await _context.Movies.ToListAsync();
+                return Ok(movieList);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting movie list record");
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    "Error getting movie record");
+            }
         }
         [HttpGet("{id}")]
         public async Task<ActionResult<Movie?>> GetMovieById(Guid id)
         {
-            return await _context.Movies.FindAsync(id)!;
+            try
+            {
+                if (id == Guid.Empty)
+                    NotFound();
+
+                var movie = await _context.Movies.FindAsync(id);
+                return Ok(movie);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting movie by id record");
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    "Error getting movie by id record");
+            }
         }
         [HttpPost]
         public async Task<ActionResult<Movie>> CreateMovie(Movie movie)
@@ -32,7 +56,7 @@ namespace MovieProject.Controllers
             try
             {
                 if (movie == null)
-                return BadRequest();
+                    return BadRequest();
 
                 var createdMovie = await _context.Movies.AddAsync(movie);
                 await _context.SaveChangesAsync();
@@ -52,13 +76,12 @@ namespace MovieProject.Controllers
             try
             {
                 if (id == Guid.Empty)
-                {
                     NotFound();
-                }
 
                 var movieRecord = await _context.Movies.FindAsync(id);
                 if (movieRecord == null && movieRecord?.Disable == true)
                 {
+                    _logger.LogError("Record not modified");
                     return StatusCode(StatusCodes.Status304NotModified,
                    "Record not modified");
                 }
@@ -77,12 +100,44 @@ namespace MovieProject.Controllers
         [HttpGet("/reviews")]
         public async Task<ActionResult<List<Review>>> GetReviews()
         {
-            return await _context.Reviews.ToListAsync();
+
+            try
+            {
+                var review = await _context.Reviews.ToListAsync(); ;
+
+                if (review == null)
+                    return BadRequest();
+
+                return Ok(review);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting review record");
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    "Error getting review record");
+            }
         }
         [HttpGet("/reviews/{id}")]
         public async Task<ActionResult<Review?>> GetReviewById(Guid id)
         {
-            return await _context.Reviews.FindAsync(id)!;
+            try
+            {
+                if (id == Guid.Empty)
+                    return BadRequest();
+
+                var movie = await _context.Reviews.FindAsync(id);
+
+                if (movie == null)
+                    return BadRequest();
+
+                return Ok(movie);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting review record by id");
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    "Error getting review record by id");
+            }
         }
         [HttpPost("/review/{id}")]
         public async Task<ActionResult<Movie>> CreateReviewByMovie(Guid id, [FromBody] Review review)
@@ -98,7 +153,7 @@ namespace MovieProject.Controllers
                 if (movie == null)
                     return BadRequest();
 
-                review.Id = Guid.Empty; 
+                review.Id = Guid.Empty;
                 review.MovieId = movie.Id;
                 await _context.Reviews.AddAsync(review);
                 await _context.SaveChangesAsync();
@@ -111,6 +166,36 @@ namespace MovieProject.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError,
                     "Error creating new review record");
 
+            }
+        }
+
+        [HttpGet("/filter")]
+        public async Task<ActionResult<Movie>> FilterMovies(string title, int page = 0, int pageSize = 10, SortType sortType = SortType.ASC)
+        {
+            try
+            {
+                var movieList = await _context.Movies.ToListAsync();
+                if (movieList == null)
+                   return BadRequest();
+
+                if (sortType == SortType.ASC)
+                {
+                    movieList.OrderBy(x => x);
+                }
+                else
+                {
+                    movieList.OrderByDescending(x => x);
+                }
+                
+                movieList = /*!string.IsNullOrEmpty(title)? */movieList.Where(x => x.Title.Contains(title)).ToList() /*: movieList*/;
+                movieList = movieList.Skip(page * pageSize).Take(pageSize).ToList();  
+                return Ok(movieList);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error filtering movie list record");
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    "Error filtering movie record");
             }
         }
     }
