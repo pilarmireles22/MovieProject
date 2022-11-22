@@ -190,7 +190,6 @@ namespace MovieProject.Controllers
 
             }
         }
-
         [HttpGet("/filter")]
         public async Task<ActionResult<Movie>> FilterMovies(string title, int page = 0, int pageSize = 10, SortType sortType = SortType.ASC)
         {
