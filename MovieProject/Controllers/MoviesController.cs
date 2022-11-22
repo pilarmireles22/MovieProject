@@ -107,6 +107,7 @@ namespace MovieProject.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error creating new review record");
                 return StatusCode(StatusCodes.Status500InternalServerError,
                     "Error creating new review record");
 
