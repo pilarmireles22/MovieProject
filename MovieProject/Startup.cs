@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Application.Helpers;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -38,6 +39,12 @@ namespace MovieProject
             {
                 opt.UseSqlite(_config.GetConnectionString("DefaultConnection"));
             });
+
+            services.AddStackExchangeRedisCache(opt =>
+            {
+                opt.Configuration = _config.GetValue<string>("caching:RedisConnection");
+            });
+            services.AddSingleton<IRedisCaching, RedisCaching>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

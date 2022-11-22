@@ -1,10 +1,14 @@
 ﻿using Application.Common.Enums;
+using Application.Helpers;
 using Domain;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using Persistence;
 using System.Collections;
+using System.Text;
 
 namespace MovieProject.Controllers
 {
@@ -12,18 +16,29 @@ namespace MovieProject.Controllers
     {
         private readonly DataContext _context;
         private readonly ILogger<MoviesController> _logger;
+        private readonly IDistributedCache _distributedCache;
+        private readonly IRedisCaching _redisCaching;
 
-        public MoviesController(DataContext context, ILogger<MoviesController> logger)
+        public MoviesController(DataContext context, ILogger<MoviesController> logger, IDistributedCache distributedCache, IRedisCaching redisCaching)
         {
             _context = context;
             _logger = logger;
+            _distributedCache = distributedCache;
+            _redisCaching = redisCaching;
         }
         [HttpGet]
         public async Task<ActionResult<List<Movie>>> GetMovies()
         {
             try
             {
-                var movieList = await _context.Movies.ToListAsync();
+                var cacheKey = "MoviesList";
+                var movieList = new List<Movie>();
+                movieList = await _redisCaching.GetFromRedis(movieList, cacheKey);
+                if (movieList == null)
+                {
+                    movieList = await _context.Movies.ToListAsync();
+                    movieList = _redisCaching.GetFromDatabase(movieList, cacheKey);
+                }
                 return Ok(movieList);
             }
             catch (Exception ex)
@@ -104,12 +119,18 @@ namespace MovieProject.Controllers
 
             try
             {
-                var review = await _context.Reviews.ToListAsync(); ;
+                var cacheKey = "ReviewsList";
+                var reviewList = new List<Review>();
+                reviewList = await _redisCaching.GetFromRedis(reviewList, cacheKey);
+                if (reviewList == null)
+                {
+                    reviewList = await _context.Reviews.ToListAsync();
+                    if (reviewList == null)
+                        return BadRequest();
 
-                if (review == null)
-                    return BadRequest();
-
-                return Ok(review);
+                    reviewList = _redisCaching.GetFromDatabase(reviewList, cacheKey);
+                }
+                return Ok(reviewList);
             }
             catch (Exception ex)
             {
